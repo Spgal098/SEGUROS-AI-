@@ -13,9 +13,12 @@ function getPool() {
     );
   }
   if (!pool) {
+    // Prefiere la conexión del rol dedicado app_backend (sin BYPASSRLS) si está
+    // configurada; si no, cae a DATABASE_URL (rol postgres, bypass — deuda).
+    const url = config.database.appUrl || config.database.url;
     pool = new Pool({
-      connectionString: config.database.url,
-      ssl: config.database.url.includes('localhost') ? false : { rejectUnauthorized: false },
+      connectionString: url,
+      ssl: url.includes('localhost') ? false : { rejectUnauthorized: false },
       max: 10,
     });
   }

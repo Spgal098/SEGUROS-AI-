@@ -48,8 +48,22 @@ helmet · CORS restringido a `CORS_ALLOWED_ORIGIN` · rate limit en `/api` · `x
    - `curl -i localhost:3002/api/me` → 401
    - `curl -i -H "Authorization: Bearer x.y.z" localhost:3002/api/me` → 401
 
+## Rol de base de datos `app_backend` (endurecimiento)
+
+El backend NO debe conectarse como `postgres` (que ignora RLS). Se creó el rol **`app_backend` con `NOBYPASSRLS`** y permisos mínimos (`db/migrations/app-backend-role.sql`).
+
+**Estado actual:** rol creado como `NOLOGIN` (no requiere contraseña, no inventamos secretos). RLS **probada con datos reales** bajo este rol (`npm run verify:role`): con contexto de org1 ve solo su cliente, con org2 solo el suyo, sin contexto o con org ajena ve 0 (falla cerrada).
+
+**Activación (requiere contraseña del CEO):**
+1. `npm run role:create` — crea el rol (ya hecho).
+2. Agrega `APP_BACKEND_PASSWORD=<secreto>` en `backend/.env` y corre `npm run role:activate` — da LOGIN + contraseña.
+3. Agrega `APP_BACKEND_DATABASE_URL=<cadena con usuario app_backend>` en `backend/.env`. Cuando está presente, el pool la usa en vez de `DATABASE_URL`, y **todo el backend pasa a respetar RLS**.
+
+Permisos otorgados a `app_backend`: `USAGE` en schema public; `SELECT/INSERT/UPDATE/DELETE` en todas las tablas (RLS filtra filas); `USAGE/SELECT` en secuencias; `EXECUTE` en funciones; default privileges para objetos futuros. `GRANT app_backend TO postgres` solo para poder probar RLS con `SET ROLE`.
+
 ## Deuda técnica declarada
 
-1. **Validación de JWT por llamada de red** a Supabase Auth en cada request. Mejorar con verificación local (JWKS/JWT secret) + caché en un bloque posterior.
-2. **Rol de DB con BYPASSRLS:** el pool entra como `postgres` (bypassa RLS); hoy el aislamiento efectivo lo da el código filtrando por `org_id` + `withOrgContext`. Pendiente crear rol `app_backend` sin BYPASSRLS (mismo pendiente que Textiles). La verificación con el rol `authenticated` confirma que las políticas y helpers funcionan sin bypass.
+1. **Validación de JWT por llamada de red** a Supabase Auth en cada request. Mejorar con verificación local (JWKS/JWT secret) + caché.
+2. **Activación de `app_backend` pendiente** de que el CEO defina `APP_BACKEND_PASSWORD` + `APP_BACKEND_DATABASE_URL`. Hasta entonces el pool sigue usando `DATABASE_URL` (rol `postgres`, bypass); el aislamiento efectivo lo da el código (`org_id`) + la RLS ya verificada. El rol y su prueba ya existen.
 3. **Prueba 403 end-to-end** (usuario real sin perfil) pendiente de un usuario Supabase de prueba; hoy verificada a nivel unitario (loader → null).
+4. **Claves Supabase de distinta generación** (`ANON_KEY` JWT legacy + service `sb_secret_`): revisar antes del bloque de invitaciones/admin.

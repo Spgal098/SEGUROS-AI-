@@ -13,7 +13,10 @@ module.exports = {
 
   database: {
     url: str(process.env.DATABASE_URL, ''),
-    get configured() { return this.url !== ''; },
+    // Conexión del rol dedicado app_backend (sin BYPASSRLS). Si está definida,
+    // el pool la usa en vez de DATABASE_URL. Opcional hasta activar el rol.
+    appUrl: str(process.env.APP_BACKEND_DATABASE_URL, ''),
+    get configured() { return this.url !== '' || this.appUrl !== ''; },
   },
 
   supabase: {

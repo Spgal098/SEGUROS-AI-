@@ -8,7 +8,10 @@
     "dev": "node server.js",
     "start": "node server.js",
     "db:apply": "node scripts/apply-db.js",
-    "verify:auth": "node scripts/verify-auth.js"
+    "verify:auth": "node scripts/verify-auth.js",
+    "role:create": "node scripts/create-app-backend.js",
+    "role:activate": "node scripts/activate-app-backend.js",
+    "verify:role": "node scripts/verify-app-backend.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
