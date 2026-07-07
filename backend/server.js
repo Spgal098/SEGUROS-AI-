@@ -1,5 +1,7 @@
-// server.js — TextilIA Seguros API (esqueleto Fase 5: solo infraestructura).
-// Los módulos de negocio llegan en Fase 6, todos detrás del middleware de auth.
+// server.js — TextilIA Seguros API (Fase 6: base segura de backend).
+// Módulos comerciales (clientes, pólizas, renovaciones, cotizaciones, WhatsApp,
+// IA, reportes) NO están aquí todavía: llegan en bloques posteriores de Fase 6,
+// todos detrás de requireAuth + requireRole.
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -7,13 +9,17 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 
 const config = require('./src/config');
-const { hasDatabase } = require('./src/db/pool');
+const healthRouter = require('./src/routes/health');
+const meRouter = require('./src/routes/me');
+const { notFound, errorHandler } = require('./src/middleware/errorHandler');
 
 const app = express();
+app.disable('x-powered-by');
 
+// ── Seguridad base ──────────────────────────────────────────────
 app.use(helmet());
 app.use(cors({ origin: config.corsOrigin, methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'] }));
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 app.use(morgan('dev'));
 app.use('/api', rateLimit({
   windowMs: config.rateLimit.windowMs,
@@ -23,29 +29,18 @@ app.use('/api', rateLimit({
   message: { error: true, code: 'RATE_LIMITED', message: 'Demasiadas peticiones, intenta más tarde.' },
 }));
 
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    service: 'TextilIA Seguros API',
-    environment: config.env,
-    database: hasDatabase() ? 'configured' : 'pending (crear proyecto Supabase de Seguros)',
-    timestamp: new Date().toISOString(),
+// ── Rutas ───────────────────────────────────────────────────────
+app.use('/api', healthRouter); // pública
+app.use('/api', meRouter);     // protegida (requireAuth dentro de la ruta)
+
+// ── 404 + errores ───────────────────────────────────────────────
+app.use(notFound);
+app.use(errorHandler);
+
+if (require.main === module) {
+  app.listen(config.port, () => {
+    console.log(`TextilIA Seguros API en http://localhost:${config.port} | env: ${config.env}`);
   });
-});
-
-// Fase 6: aquí se montan las rutas de negocio, SIEMPRE detrás de auth.
-
-app.use((req, res) => {
-  res.status(404).json({ error: true, code: 'NOT_FOUND', message: `Ruta no encontrada: ${req.method} ${req.originalUrl}` });
-});
-
-// eslint-disable-next-line no-unused-vars
-app.use((err, req, res, next) => {
-  res.status(err.status || 500).json({ error: true, code: err.code || 'INTERNAL_ERROR', message: err.message || 'Error interno' });
-});
-
-app.listen(config.port, () => {
-  console.log(`TextilIA Seguros API en http://localhost:${config.port} | env: ${config.env} | DB: ${hasDatabase() ? 'configurada' : 'pendiente'}`);
-});
+}
 
 module.exports = app;
