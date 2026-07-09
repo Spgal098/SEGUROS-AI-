@@ -11,7 +11,8 @@
     "verify:auth": "node scripts/verify-auth.js",
     "role:create": "node scripts/create-app-backend.js",
     "role:activate": "node scripts/activate-app-backend.js",
-    "verify:role": "node scripts/verify-app-backend.js"
+    "verify:role": "node scripts/verify-app-backend.js",
+    "verify:role:e2e": "node scripts/verify-role-e2e.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

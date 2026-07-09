@@ -29,28 +29,27 @@ const { getActiveProfileByUserId } = require('../src/repositories/profiles.repos
   check('65 políticas', p === 65, String(p));
   check('RLS activa en todas', rls === t, `${rls}/${t}`);
 
-  // C. Helpers RLS bajo un rol SIN bypass (authenticated). En transacción + rollback.
+  // C. La conexión de la app (app_backend cuando está activado) NO debe tener
+  //    bypass, y los helpers de identidad deben reflejar el contexto fijado.
+  //    (La prueba de aislamiento de filas con datos reales vive en
+  //    verify-role-e2e.js, que corre como app_backend end-to-end.)
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    await client.query('SET LOCAL ROLE authenticated');
+    const who = (await client.query('SELECT current_user AS u')).rows[0].u;
+    const rb = (await client.query('SELECT rolbypassrls FROM pg_roles WHERE rolname = current_user')).rows[0].rolbypassrls;
     const fakeOrg = crypto.randomUUID();
     await client.query("SELECT set_config('app.org_id', $1, true)", [fakeOrg]);
     await client.query("SELECT set_config('app.role', 'agent', true)");
     const org = (await client.query('SELECT app_org_id() AS v')).rows[0].v;
     const role = (await client.query('SELECT app_role() AS v')).rows[0].v;
-    // Bajo authenticated (sin bypass), un SELECT a una tabla con RLS no debe
-    // arrojar filas de otra organización (aquí no hay datos, pero debe ejecutar
-    // sin error y respetar el contexto).
-    const n = (await client.query('SELECT COUNT(*)::int n FROM clients')).rows[0].n;
     await client.query('ROLLBACK');
-    check('rol authenticated NO tiene bypassrls', true);
+    check(`conexión de la app (${who}) sin bypassrls`, rb === false, `bypassrls=${rb}`);
     check('app_org_id() refleja el contexto fijado', org === fakeOrg);
     check('app_role() refleja el contexto fijado', role === 'agent');
-    check('SELECT con RLS ejecuta bajo authenticated', Number.isInteger(n), `clients=${n}`);
   } catch (e) {
     await client.query('ROLLBACK').catch(() => {});
-    check('verificación RLS con rol sin bypass', false, e.message);
+    check('verificación de helpers de identidad', false, e.message);
   } finally {
     client.release();
   }

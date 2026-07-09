@@ -4,10 +4,11 @@
 // a propósito — este script es para el ALTA INICIAL del proyecto, no para re-runs).
 const fs = require('fs');
 const path = require('path');
-const { getPool } = require('../src/db/pool');
+const { getAdminPool } = require('../src/db/pool');
 
 (async () => {
-  const pool = getPool(); // lanza error claro si falta DATABASE_URL
+  // Operación admin (DDL): como postgres, nunca app_backend.
+  const pool = getAdminPool(); // lanza error claro si falta DATABASE_URL
   const read = (f) => fs.readFileSync(path.join(__dirname, '..', '..', 'db', f), 'utf8');
   const client = await pool.connect();
   try {

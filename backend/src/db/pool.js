@@ -25,16 +25,29 @@ function getPool() {
   return pool;
 }
 
-// Query simple sobre el pool.
+// Query simple sobre el pool (rol de aplicación).
 function query(text, params) {
   return getPool().query(text, params);
 }
 
+// Pool ADMIN: siempre usa DATABASE_URL (rol postgres), nunca app_backend.
+// Para migraciones y operaciones que requieren privilegios elevados
+// (crear/alterar roles, aplicar esquema). Uso efímero: el llamador hace end().
+function getAdminPool() {
+  if (!config.database.url) {
+    throw new Error('DATABASE_URL (rol postgres) no configurada; requerida para operaciones admin.');
+  }
+  return new Pool({
+    connectionString: config.database.url,
+    ssl: config.database.url.includes('localhost') ? false : { rejectUnauthorized: false },
+    max: 4,
+  });
+}
+
 // Ejecuta `fn(client)` dentro de una transacción con el contexto de identidad
-// fijado (app.org_id / app.role). Cuando exista el rol `app_backend` sin
-// BYPASSRLS (deuda técnica), estas variables activarán las políticas RLS.
-// Hoy el pool entra como rol con BYPASSRLS, así que el aislamiento efectivo
-// lo garantiza el código filtrando por org_id (defensa en profundidad).
+// fijado (app.org_id / app.role). Con el rol app_backend (sin BYPASSRLS) estas
+// variables activan las políticas RLS; el aislamiento por org queda garantizado
+// tanto por la RLS como por el filtrado por org_id en el código.
 async function withOrgContext({ orgId, role }, fn) {
   const client = await getPool().connect();
   try {
@@ -52,4 +65,4 @@ async function withOrgContext({ orgId, role }, fn) {
   }
 }
 
-module.exports = { getPool, query, withOrgContext, hasDatabase: () => config.database.configured };
+module.exports = { getPool, getAdminPool, query, withOrgContext, hasDatabase: () => config.database.configured };

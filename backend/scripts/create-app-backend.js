@@ -3,10 +3,11 @@
 // No maneja contraseñas. Idempotente. Uso: npm run role:create
 const fs = require('fs');
 const path = require('path');
-const { getPool } = require('../src/db/pool');
+const { getAdminPool } = require('../src/db/pool');
 
 (async () => {
-  const pool = getPool();
+  // Operación admin: como postgres (crear roles requiere privilegios elevados).
+  const pool = getAdminPool();
   const sql = fs.readFileSync(path.join(__dirname, '..', '..', 'db', 'migrations', 'app-backend-role.sql'), 'utf8');
   const client = await pool.connect();
   try {
