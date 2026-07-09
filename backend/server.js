@@ -11,6 +11,8 @@ const rateLimit = require('express-rate-limit');
 const config = require('./src/config');
 const healthRouter = require('./src/routes/health');
 const meRouter = require('./src/routes/me');
+const insurersRouter = require('./src/routes/insurers');
+const linesOfBusinessRouter = require('./src/routes/linesOfBusiness');
 const { notFound, errorHandler } = require('./src/middleware/errorHandler');
 
 const app = express();
@@ -32,6 +34,8 @@ app.use('/api', rateLimit({
 // ── Rutas ───────────────────────────────────────────────────────
 app.use('/api', healthRouter); // pública
 app.use('/api', meRouter);     // protegida (requireAuth dentro de la ruta)
+app.use('/api/insurers', insurersRouter);              // catálogos (auth + admin en escritura)
+app.use('/api/lines-of-business', linesOfBusinessRouter);
 
 // ── 404 + errores ───────────────────────────────────────────────
 app.use(notFound);
