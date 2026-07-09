@@ -15,7 +15,8 @@
     "verify:role:e2e": "node scripts/verify-role-e2e.js",
     "db:migrate:catalogs:dry": "node scripts/run-migration.js ../db/migrations/catalogs.sql --dry-run",
     "db:migrate:catalogs": "node scripts/run-migration.js ../db/migrations/catalogs.sql --commit",
-    "verify:catalogs": "node scripts/verify-catalogs.js"
+    "verify:catalogs": "node scripts/verify-catalogs.js",
+    "seed:catalogs": "node scripts/seed-catalogs.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
