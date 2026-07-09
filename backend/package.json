@@ -12,7 +12,9 @@
     "role:create": "node scripts/create-app-backend.js",
     "role:activate": "node scripts/activate-app-backend.js",
     "verify:role": "node scripts/verify-app-backend.js",
-    "verify:role:e2e": "node scripts/verify-role-e2e.js"
+    "verify:role:e2e": "node scripts/verify-role-e2e.js",
+    "db:migrate:catalogs:dry": "node scripts/run-migration.js ../db/migrations/catalogs.sql --dry-run",
+    "db:migrate:catalogs": "node scripts/run-migration.js ../db/migrations/catalogs.sql --commit"
   },
   "dependencies": {
     "cors": "^2.8.5",
